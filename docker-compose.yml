@@ -1,0 +1,54 @@
+services:
+  nginx:
+    image: nginx:1.27.4-alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates
+      - ./nginx/certs:/certs/
+    links:
+      - server
+      - web
+  db:
+    image: postgres:17-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=development
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /moshimoshi-server
+    command: bash -c "pnpm install && pnpm run dev"
+    ports:
+      - "3000:3000"
+    env_file:
+      - moshimoshi-server/.env
+    links:
+      - db
+    volumes:
+      - ./moshimoshi-server:/moshimoshi-server
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /moshimoshi-web
+    command: bash -c "pnpm install && pnpm run dev"
+    ports:
+      - "3001:3001"
+    env_file:
+      - moshimoshi-web/.env
+    links:
+      - server
+    volumes:
+      - ./moshimoshi-web:/moshimoshi-web
+
+volumes:
+  postgres-data:

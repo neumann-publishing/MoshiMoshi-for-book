@@ -1,0 +1,41 @@
+{
+	"name": "moshimoshi-server",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"start:node": "node ./dist/index.js",
+		"start": "pm2 start ./dist/index.js -i max",
+		"stop": "pm2 stop ./dist/index.js",
+		"restart": "pm2 restart ./dist/index.js",
+		"kysely-codegen": "kysely-codegen --out-file src/db/db.d.ts --dialect=postgres --env-file .env --camel-case",
+		"check": "biome check --write ."
+	},
+	"dependencies": {
+		"bcryptjs": "^3.0.2",
+		"dayjs": "^1.11.13",
+		"dotenv": "^16.4.7",
+		"hono": "^4.7.2",
+		"kysely": "^0.27.5",
+		"pg": "^8.13.3",
+		"pg-pool": "^3.7.1",
+		"pm2": "^5.4.3",
+		"uuid": "^11.1.0",
+		"valibot": "1.0.0-rc.3"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@hono/vite-build": "^1.3.0",
+		"@hono/vite-dev-server": "^0.19.0",
+		"@tsconfig/node23": "^23.0.0",
+		"@types/node": "^20.11.17",
+		"@types/pg": "^8.11.11",
+		"@types/pg-pool": "^2.0.6",
+		"concurrently": "^9.1.2",
+		"kysely-codegen": "^0.17.0",
+		"nodemon": "^3.1.9",
+		"typescript": "~5.8.2",
+		"vite": "^6.2.0"
+	}
+}

@@ -1,0 +1,23 @@
+server {
+  listen 443 ssl;
+  server_name moshimoshi.example.com;
+
+  ssl_certificate /certs/moshimoshi.crt;
+  ssl_certificate_key /certs/moshimoshi.key;
+
+  location /api {
+    proxy_pass http://server:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  location / {
+    proxy_pass http://web:3001;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
