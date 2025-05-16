@@ -12,7 +12,7 @@ import type { ModelResponse } from "../types.d.ts";
 const SignUpSchema = v.object({
 	email: v.pipe(v.string(), v.email()),
 	password: v.pipe(v.string(), v.minLength(8), v.maxLength(50)),
-	name: v.nullable(v.pipe(v.string(), v.maxLength(100))),
+	name: v.pipe(v.string(), v.maxLength(100)),
 });
 type SignUpParams = v.InferOutput<typeof SignUpSchema>;
 export async function signUp(
