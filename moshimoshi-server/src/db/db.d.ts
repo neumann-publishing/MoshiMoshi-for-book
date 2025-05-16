@@ -23,6 +23,7 @@ export interface Participants {
   createdAt: Generated<Timestamp | null>;
   isOwner: Generated<boolean>;
   meetingUuid: string;
+  updatedAt: Generated<Timestamp | null>;
   userId: number;
 }
 
@@ -30,13 +31,29 @@ export interface Users {
   createdAt: Generated<Timestamp>;
   email: string;
   id: Generated<number>;
-  name: string | null;
+  name: string;
   passwordDigest: string;
   updatedAt: Generated<Timestamp>;
+}
+
+export interface UserSettings {
+  createdAt: Generated<Timestamp>;
+  currentAudioDeviceId: string | null;
+  currentSpeakerDeviceId: string | null;
+  currentVideoDeviceId: string | null;
+  enableBackgroundBlur: Generated<boolean>;
+  enableMicrophone: Generated<boolean>;
+  enableNoiseCancellation: Generated<boolean>;
+  enableSpeaker: Generated<boolean>;
+  enableVideo: Generated<boolean>;
+  microphoneUnderGain: Generated<number>;
+  updatedAt: Generated<Timestamp>;
+  userId: number;
 }
 
 export interface DB {
   meetings: Meetings;
   participants: Participants;
   users: Users;
+  userSettings: UserSettings;
 }
