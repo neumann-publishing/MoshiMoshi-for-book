@@ -1,5 +1,6 @@
 import {
 	Avatar,
+	AvatarGroup,
 	Button,
 	Flex,
 	Heading,
@@ -21,12 +22,12 @@ import { jwtTokenAtom } from "../atoms/current-user";
 import { CreateMeetingForm } from "../components/create-meeting-form";
 import { SignOutButton } from "../components/sign-out-button";
 import { httpClient } from "../libs/http-client";
-import { Meeting } from "../types";
+import { MeetingWithPariticipants } from "../types";
 
 export function Home() {
 	const [showAddMeeting, setShowAddMeeting] = useState(false);
 	const jwtToken = useAtomValue(jwtTokenAtom);
-	const { data: meetings, isLoading } = useQuery<Meeting[]>({
+	const { data: meetings, isLoading } = useQuery<MeetingWithPariticipants[]>({
 		queryKey: ["meetings"],
 		queryFn: () => {
 			return httpClient({ jwtToken }).get("auth/meetings").json();
@@ -53,6 +54,7 @@ export function Home() {
 				<UnorderedList>
 					<If condition={isLoading}>
 						<Then>
+							{" "}
 							<ListItem>
 								<Skeleton height="2rem" />
 							</ListItem>
@@ -70,15 +72,15 @@ export function Home() {
 										<WouterLink href={`/meetings/${meeting.uuid}`} asChild>
 											<Link>{meeting.name}</Link>
 										</WouterLink>
-										<Tooltip
-											label={meeting.ownerName || meeting.ownerEmail}
-											aria-label="owner"
-										>
-											<Avatar
-												name={meeting.ownerName || meeting.ownerEmail}
-												size="sm"
-											/>
-										</Tooltip>
+										<AvatarGroup size="sm" max={3}>
+											{meeting.participants.map((participant) => (
+												<Avatar
+													key={participant.userId}
+													name={participant.userName || participant.userEmail}
+													size="sm"
+												/>
+											))}
+										</AvatarGroup>
 									</Flex>
 								</ListItem>
 							))}

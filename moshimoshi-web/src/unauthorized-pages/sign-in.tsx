@@ -12,19 +12,54 @@ import { useSetAtom } from "jotai";
 import Cookies from "js-cookie";
 import { Link as WouterLink } from "wouter";
 import { currentUserAtom, jwtTokenAtom } from "../atoms/current-user";
+import {
+	currentAudioDeviceIdAtom,
+	currentSpeakerDeviceIdAtom,
+	currentVideoDeviceIdAtom,
+	enableBackgroundBlurAtom,
+	enableMicrophoneAtom,
+	enableNoiseCancellationAtom,
+	enableSpeakerAtom,
+	enableVideoAtom,
+	microphoneUnderGainAtom,
+} from "../atoms/media";
 import { httpClient } from "../libs/http-client";
-import { User } from "../types";
+import { User, UserSetting } from "../types";
 
 export function SignInPage() {
 	const setJwtToken = useSetAtom(jwtTokenAtom);
 	const setCurrentUser = useSetAtom(currentUserAtom);
+	const setEnableVideo = useSetAtom(enableVideoAtom);
+	const setEnableMicrophone = useSetAtom(enableMicrophoneAtom);
+	const setEnableSpeaker = useSetAtom(enableSpeakerAtom);
+	const setEnableNoiseCancellation = useSetAtom(enableNoiseCancellationAtom);
+	const setMicrophoneUnderGain = useSetAtom(microphoneUnderGainAtom);
+	const setCurrentAudioDeviceId = useSetAtom(currentAudioDeviceIdAtom);
+	const setCurrentVideoDeviceId = useSetAtom(currentVideoDeviceIdAtom);
+	const setCurrentSpeakerDeviceId = useSetAtom(currentSpeakerDeviceIdAtom);
+	const setEnableBackgroundBlurAtom = useSetAtom(enableBackgroundBlurAtom);
+
 	const { mutate, isPending } = useMutation({
 		mutationFn: (data: { email: string; password: string }) => {
 			return httpClient().post("sign-in", { json: data }).json();
 		},
-		onSuccess: (body: { jwtToken: string; user: User }) => {
+		onSuccess: (body: {
+			jwtToken: string;
+			user: User;
+			userSetting: UserSetting;
+		}) => {
 			setJwtToken(body.jwtToken);
 			setCurrentUser(body.user);
+			setEnableVideo(body.userSetting.enableVideo);
+			setEnableMicrophone(body.userSetting.enableMicrophone);
+			setEnableSpeaker(body.userSetting.enableSpeaker);
+			setEnableNoiseCancellation(body.userSetting.enableNoiseCancellation);
+			setMicrophoneUnderGain(body.userSetting.microphoneUnderGain);
+			setCurrentAudioDeviceId(body.userSetting.currentAudioDeviceId);
+			setCurrentVideoDeviceId(body.userSetting.currentVideoDeviceId);
+			setCurrentSpeakerDeviceId(body.userSetting.currentSpeakerDeviceId);
+			setEnableBackgroundBlurAtom(body.userSetting.enableBackgroundBlur);
+
 			Cookies.set("jwt-token", body.jwtToken);
 		},
 		onError: (error) => {

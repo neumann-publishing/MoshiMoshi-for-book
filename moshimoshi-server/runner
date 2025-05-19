@@ -1,0 +1,15 @@
+#!/bin/bash
+set -Ceux
+
+ARGS=${@:2}
+
+case ${1} in
+"psql") ## run psql
+docker compose exec db psql postgresql://postgres:password@localhost:5432/development
+;;
+"help" | *)
+echo "HELP"
+echo "  COMMAND ) DESCRIPTION"
+\grep -E "\)\ *\##" ${0}
+;;
+esac

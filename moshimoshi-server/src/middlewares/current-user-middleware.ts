@@ -1,11 +1,11 @@
 import dayjs from "dayjs";
 import { createMiddleware } from "hono/factory";
 import { Selectable } from "kysely";
-import { Users } from "../db/db";
-import * as usersModel from "../models/users";
+import * as usersModel from "../models/users.js";
+import { User } from "../types.js";
 
 type currentUserVariables = {
-	currentUser: Selectable<Users>;
+	currentUser: Selectable<User>;
 };
 
 // NOTE hono/jwt を直前に使っていることを前提とする

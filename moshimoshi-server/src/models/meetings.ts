@@ -10,19 +10,26 @@ import { ModelResponse } from "../types.js";
 export async function findAllActive() {
 	return await db
 		.selectFrom("meetings")
-		.innerJoin("participants", (join) =>
-			join
-				.onRef("participants.meetingUuid", "=", "meetings.uuid")
-				.on("participants.isOwner", "=", true),
-		)
-		.innerJoin("users", "users.id", "participants.userId")
-		.where("meetings.finishedAt", "is", null)
 		.selectAll("meetings")
-		.select([
-			"users.id as ownerId",
-			"users.email as ownerEmail",
-			"users.name as ownerName",
+		.select((eb) => [
+			jsonArrayFrom(
+				eb
+					.selectFrom("users")
+					.innerJoin("participants", (join) =>
+						join
+							.onRef("participants.meetingUuid", "=", "meetings.uuid")
+							.onRef("participants.userId", "=", "users.id"),
+					)
+					.select([
+						"users.id as user_id",
+						"users.email as user_email",
+						"users.name as user_name",
+						"participants.isOwner as is_owner",
+					])
+					.orderBy("participants.isOwner", "desc"),
+			).as("participants"),
 		])
+		.where("meetings.finishedAt", "is", null)
 		.execute();
 }
 
@@ -44,7 +51,8 @@ export async function find(uuid: string) {
 						"users.email as user_email",
 						"users.name as user_name",
 						"participants.isOwner as is_owner",
-					]),
+					])
+					.orderBy("participants.isOwner", "desc"),
 			).as("participants"),
 		])
 		.where("uuid", "=", uuid)

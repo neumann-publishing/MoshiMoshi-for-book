@@ -4,7 +4,7 @@
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
-		"dev": "vite",
+		"dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 vite",
 		"build": "tsc -b && vite build",
 		"preview": "vite preview",
 		"check": "biome check --write ."
@@ -13,6 +13,7 @@
 		"@chakra-ui/react": "2",
 		"@emotion/react": "^11.14.0",
 		"@emotion/styled": "^11.14.0",
+		"@shiguredo/virtual-background": "^2023.2.0",
 		"@tanstack/react-query": "^5.66.11",
 		"@uidotdev/usehooks": "^2.4.1",
 		"dayjs": "^1.11.13",

@@ -2,11 +2,13 @@ import bcrypt from "bcryptjs";
 import dayjs from "dayjs";
 import "dotenv/config";
 import { sign } from "hono/jwt";
-import type { Insertable } from "kysely";
 import * as v from "valibot";
-import type { Users } from "../db/db.d.ts";
 import { db } from "../db/index.js";
-import { notFoundError, uniqueValidationError } from "../libs/validator.js";
+import {
+	failedToCreateError,
+	notFoundError,
+	uniqueValidationError,
+} from "../libs/validator.js";
 import type { ModelResponse } from "../types.d.ts";
 
 const SignUpSchema = v.object({
@@ -15,9 +17,7 @@ const SignUpSchema = v.object({
 	name: v.pipe(v.string(), v.maxLength(100)),
 });
 type SignUpParams = v.InferOutput<typeof SignUpSchema>;
-export async function signUp(
-	params: SignUpParams,
-): Promise<ModelResponse<Insertable<Users>>> {
+export async function signUp(params: SignUpParams): Promise<ModelResponse> {
 	const validationResult = v.safeParse(SignUpSchema, params);
 
 	if (!validationResult.success) {
@@ -47,9 +47,22 @@ export async function signUp(
 			.returningAll()
 			.executeTakeFirst();
 
+		if (!user) {
+			return {
+				success: false,
+				value: [failedToCreateError("user")],
+			};
+		}
+
+		await trx.insertInto("userSettings").values({ userId: user.id }).execute();
+
 		return {
 			success: true,
-			value: user,
+			value: {
+				id: user.id,
+				email: user.email,
+				name: user.name,
+			},
 		};
 	});
 }
@@ -59,17 +72,7 @@ const SignInSchema = v.object({
 	password: v.pipe(v.string(), v.minLength(8), v.maxLength(50)),
 });
 type SignInParams = v.InferOutput<typeof SignInSchema>;
-type SignInResponse = {
-	jwtToken: string;
-	user: {
-		id: number;
-		email: string;
-		name?: string;
-	};
-};
-export async function signIn(
-	params: SignInParams,
-): Promise<ModelResponse<SignInResponse>> {
+export async function signIn(params: SignInParams): Promise<ModelResponse> {
 	const validationResult = v.safeParse(SignInSchema, params);
 
 	if (!validationResult.success) {
@@ -78,8 +81,9 @@ export async function signIn(
 
 	const user = await db
 		.selectFrom("users")
+		.innerJoin("userSettings", "users.id", "userSettings.userId")
 		.selectAll()
-		.where("email", "=", params.email)
+		.where("users.email", "=", params.email)
 		.executeTakeFirst();
 
 	if (!user) {
@@ -126,7 +130,18 @@ export async function signIn(
 			user: {
 				id: user.id,
 				email: user.email,
-				name: user.name || undefined,
+				name: user.name,
+			},
+			userSetting: {
+				enableVideo: user.enableVideo,
+				enableMicrophone: user.enableMicrophone,
+				enableSpeaker: user.enableSpeaker,
+				microphoneUnderGain: user.microphoneUnderGain,
+				enableNoiseCancellation: user.enableNoiseCancellation,
+				currentAudioDeviceId: user.currentAudioDeviceId,
+				currentVideoDeviceId: user.currentVideoDeviceId,
+				currentSpeakerDeviceId: user.currentSpeakerDeviceId,
+				enableBackgroundBlur: user.enableBackgroundBlur,
 			},
 		},
 	};
@@ -135,7 +150,7 @@ export async function signIn(
 export async function find(id: number) {
 	return await db
 		.selectFrom("users")
-		.selectAll()
+		.select(["users.id as id", "users.email as email", "users.name as name"])
 		.where("id", "=", id)
 		.executeTakeFirst();
 }

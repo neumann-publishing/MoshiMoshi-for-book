@@ -11,40 +11,44 @@ import {
 } from "@chakra-ui/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
-import { use, useState } from "react";
+import { RefObject, use, useState } from "react";
 import {
 	MdOutlineCallEnd,
-	MdOutlineMic,
-	MdOutlineMicOff,
 	MdOutlineScreenShare,
 	MdOutlineStopScreenShare,
-	MdOutlineVideocam,
-	MdOutlineVideocamOff,
 	MdOutlineVolumeOff,
 	MdOutlineVolumeUp,
 } from "react-icons/md";
 import { Else, If, Then } from "react-if";
 import { useLocation, useParams } from "wouter";
-import { jwtTokenAtom } from "../atoms/current-user";
+import { currentUserAtom, jwtTokenAtom } from "../atoms/current-user";
 import { httpClient } from "../libs/http-client";
 import { MeetingWithPariticipants } from "../types";
+import { MicrophoneButton } from "./microphone-button";
+import { MyVideoPanel } from "./my-video-panel";
+import { VideoButton } from "./video-button";
 
 export function MeetingPanel({
 	meeting,
 	setStartMeeting,
 	startMeeting,
+	videoRef,
+	audioTrackRef,
+	videoTrackRef,
 }: {
 	meeting: MeetingWithPariticipants;
 	setStartMeeting: (startMeeting: boolean) => void;
 	startMeeting: boolean;
+	videoRef: RefObject<HTMLVideoElement>;
+	audioTrackRef: RefObject<MediaStreamTrack | null>;
+	videoTrackRef: RefObject<MediaStreamTrack | null>;
 }) {
 	const [_, navigate] = useLocation();
 	const params = useParams<{ uuid: string }>();
-	const [microphoneState, setMicrophoneState] = useState(true);
 	const [speakerState, setSpeakerState] = useState(true);
-	const [cameraState, setCameraState] = useState(true);
 	const [screenShareState, setScreenShareState] = useState(true);
 	const jwtToken = useAtomValue(jwtTokenAtom);
+	const currentUser = useAtomValue(currentUserAtom);
 	const queryClient = useQueryClient();
 
 	const { mutate: leaveMeeting, isPending: leaveMeetingIsPending } =
@@ -87,31 +91,45 @@ export function MeetingPanel({
 				{/* TODO currentUser は order 1 にしたい */}
 				{/* TODO 画面に表示できないくらいの参加者がいるならそもそも全員は表示できないので、上限以上は縮小表示したい */}
 				{meeting.participants.map((participant) => (
-					<Flex
-						key={participant.userId}
-						as="div"
-						bg="yellow"
-						width="calc((100% - 4rem) / 3)"
-						height="calc((100% - 4rem) / 3 * 0.75)"
-						maxWidth="400px"
-						maxHeight="300px"
-						flexDirection="column"
-					>
-						<Flex justifyContent="flex-end">
-							{participant.userName || participant.userEmail}
-						</Flex>
-						<Flex
-							justifyContent="center"
-							alignItems="center"
-							width="100%"
-							height="100%"
-						>
-							<Avatar
-								name={participant.userName || participant.userEmail}
-								size="lg"
-							/>
-						</Flex>
-					</Flex>
+					<If condition={participant.userId === currentUser.id}>
+						<Then>
+							<Flex
+								key={participant.userId}
+								as="div"
+								bg="yellow"
+								width="460px"
+								height="350px"
+								flexDirection="column"
+							>
+								<MyVideoPanel videoRef={videoRef} />
+							</Flex>
+						</Then>
+						<Else>
+							<Flex
+								key={participant.userId}
+								as="div"
+								bg="yellow"
+								width="460px"
+								height="350px"
+								flexDirection="column"
+							>
+								<Flex justifyContent="flex-end">
+									{participant.userName || participant.userEmail}
+								</Flex>
+								<Flex
+									justifyContent="center"
+									alignItems="center"
+									width="100%"
+									height="100%"
+								>
+									<Avatar
+										name={participant.userName || participant.userEmail}
+										size="lg"
+									/>
+								</Flex>
+							</Flex>
+						</Else>
+					</If>
 				))}
 			</Flex>
 			<Flex
@@ -121,29 +139,8 @@ export function MeetingPanel({
 				justifyContent="center"
 				gap="1rem"
 			>
-				<If condition={microphoneState}>
-					<Then>
-						<IconButton
-							isRound={true}
-							variant="solid"
-							aria-label="Mic Off"
-							fontSize="20px"
-							onClick={() => setMicrophoneState(false)}
-							icon={<Icon as={MdOutlineMic} />}
-						/>
-					</Then>
-					<Else>
-						<IconButton
-							isRound={true}
-							variant="solid"
-							aria-label="Mic On"
-							fontSize="20px"
-							colorScheme="red"
-							onClick={() => setMicrophoneState(true)}
-							icon={<Icon as={MdOutlineMicOff} />}
-						/>
-					</Else>
-				</If>
+				<MicrophoneButton audioTrackRef={audioTrackRef} />
+				<VideoButton videoTrackRef={videoTrackRef} />
 
 				<If condition={speakerState}>
 					<Then>
@@ -165,30 +162,6 @@ export function MeetingPanel({
 							colorScheme="red"
 							onClick={() => setSpeakerState(true)}
 							icon={<Icon as={MdOutlineVolumeOff} />}
-						/>
-					</Else>
-				</If>
-
-				<If condition={cameraState}>
-					<Then>
-						<IconButton
-							isRound={true}
-							variant="solid"
-							aria-label="Video Off"
-							fontSize="20px"
-							onClick={() => setCameraState(false)}
-							icon={<Icon as={MdOutlineVideocam} />}
-						/>
-					</Then>
-					<Else>
-						<IconButton
-							isRound={true}
-							variant="solid"
-							aria-label="Video Off"
-							fontSize="20px"
-							colorScheme="red"
-							onClick={() => setCameraState(true)}
-							icon={<Icon as={MdOutlineVideocamOff} />}
 						/>
 					</Else>
 				</If>

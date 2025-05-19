@@ -23,7 +23,6 @@ export interface Participants {
   createdAt: Generated<Timestamp | null>;
   isOwner: Generated<boolean>;
   meetingUuid: string;
-  updatedAt: Generated<Timestamp | null>;
   userId: number;
 }
 

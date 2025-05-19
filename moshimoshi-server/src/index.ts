@@ -8,6 +8,7 @@ import { Selectable } from "kysely";
 import { Users } from "./db/db.js";
 import { currentUserMiddleware } from "./middlewares/current-user-middleware.js";
 import * as meetingsModel from "./models/meetings.js";
+import * as userSettingsModel from "./models/user-settings.js";
 import * as usersModel from "./models/users.js";
 
 type SignInVariables = JwtVariables & {
@@ -31,11 +32,7 @@ app.get("/", (c) => {
 	return c.text("Hello Hono!");
 });
 
-app.get("/api/", (c) => {
-	return c.text("Hello Hono api!");
-});
-
-app.post("/api/sign-up", async (c) => {
+app.post("/sign-up", async (c) => {
 	const body = await c.req.json();
 
 	const result = await usersModel.signUp({
@@ -51,7 +48,7 @@ app.post("/api/sign-up", async (c) => {
 	return c.json({ message: "success" });
 });
 
-app.post("/api/sign-in", async (c) => {
+app.post("/sign-in", async (c) => {
 	const body = await c.req.json();
 
 	const result = await usersModel.signIn({
@@ -66,7 +63,7 @@ app.post("/api/sign-in", async (c) => {
 	return c.json(result.value);
 });
 
-app.use("/api/auth/*", (c, next) => {
+app.use("/auth/*", (c, next) => {
 	const jwtMiddleware = jwt({
 		secret:
 			process.env.JWT_SECRET ??
@@ -76,27 +73,64 @@ app.use("/api/auth/*", (c, next) => {
 	return jwtMiddleware(c, next);
 });
 
-app.use("/api/auth/*", currentUserMiddleware);
+app.use("/auth/*", currentUserMiddleware);
 
-app.get("/api/auth/current-user", async (c) => {
+app.get("/auth/current-user", async (c) => {
 	const user = c.get("currentUser");
 
+	const userSetting = await userSettingsModel.find(user.id);
+
 	return c.json({
-		user: {
-			id: user.id,
-			email: user.email,
-			name: user.name ?? undefined,
-		},
+		user,
+		userSetting,
 	});
 });
 
-app.get("/api/auth/meetings", async (c) => {
+app.patch("/auth/settings", async (c) => {
+	const user = c.get("currentUser");
+	const body = await c.req.json();
+
+	const result = await userSettingsModel.updateEnable({
+		userId: user.id,
+		target: body.target,
+		enable: body.enable,
+	});
+
+	if (!result.success) {
+		return c.json({ message: "Failed to update user settings" }, 400);
+	}
+
+	return c.json(result.value);
+});
+
+app.patch("/auth/settings/values", async (c) => {
+	const user = c.get("currentUser");
+	const body = await c.req.json();
+
+	const result = await userSettingsModel.update({
+		userId: user.id,
+		microphoneUnderGain: body.microphoneUnderGain,
+		enableNoiseCancellation: body.enableNoiseCancellation,
+		currentAudioDeviceId: body.currentAudioDeviceId,
+		currentVideoDeviceId: body.currentVideoDeviceId,
+		currentSpeakerDeviceId: body.currentSpeakerDeviceId,
+		enableBackgroundBlur: body.enableBackgroundBlur,
+	});
+
+	if (!result.success) {
+		return c.json({ message: "Failed to update user settings" }, 400);
+	}
+
+	return c.json(result.value);
+});
+
+app.get("/auth/meetings", async (c) => {
 	const meetings = await meetingsModel.findAllActive();
 
 	return c.json(meetings);
 });
 
-app.post("/api/auth/meetings", async (c) => {
+app.post("/auth/meetings", async (c) => {
 	const body = await c.req.json();
 
 	const result = await meetingsModel.create({
@@ -111,7 +145,7 @@ app.post("/api/auth/meetings", async (c) => {
 	return c.json(result.value);
 });
 
-app.get("/api/auth/meetings/:uuid", async (c) => {
+app.get("/auth/meetings/:uuid", async (c) => {
 	const meetingUuid = c.req.param("uuid");
 
 	const meeting = await meetingsModel.find(meetingUuid);
@@ -119,7 +153,7 @@ app.get("/api/auth/meetings/:uuid", async (c) => {
 	return c.json(meeting);
 });
 
-app.post("/api/auth/meetings/:uuid/attend", async (c) => {
+app.post("/auth/meetings/:uuid/attend", async (c) => {
 	const meetingUuid = c.req.param("uuid");
 
 	const result = await meetingsModel.attend({
@@ -134,7 +168,7 @@ app.post("/api/auth/meetings/:uuid/attend", async (c) => {
 	return c.json(result.value);
 });
 
-app.post("/api/auth/meetings/:uuid/leave", async (c) => {
+app.post("/auth/meetings/:uuid/leave", async (c) => {
 	const meetingUuid = c.req.param("uuid");
 
 	const result = await meetingsModel.leave({
