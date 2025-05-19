@@ -53,7 +53,6 @@ export function Home() {
 				<UnorderedList>
 					<If condition={isLoading}>
 						<Then>
-							{" "}
 							<ListItem>
 								<Skeleton height="2rem" />
 							</ListItem>
