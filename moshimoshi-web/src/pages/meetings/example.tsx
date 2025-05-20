@@ -1,12 +1,18 @@
-import { Flex, Radio, RadioGroup } from "@chakra-ui/react";
+import { Flex, Radio, RadioGroup, Switch, Text } from "@chakra-ui/react";
+import { VirtualBackgroundProcessor } from "@shiguredo/virtual-background";
 import { useEffect, useRef, useState } from "react";
 import { DeviceType, getDevices } from "../../libs/devices";
 
 export function MeetingsExamplePage() {
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
-	const [currentVideoDeviceId, setCurrentVideoDeviceId] = useState<string>();
+	const [currentVideoDeviceId, setCurrentVideoDeviceId] =
+		useState<string>(null);
 	const [stream, setStream] = useState<MediaStream | null>(null);
+	const [enableBackgroundBlur, setEnableBackgroundBlur] = useState(false);
+	const assetsPath =
+		"https://cdn.jsdelivr.net/npm/@shiguredo/virtual-background@latest/dist";
+	const virtualBackgroundProcessor = new VirtualBackgroundProcessor(assetsPath);
 
 	useEffect(() => {
 		const getVideoDevices = async () => {
@@ -17,6 +23,7 @@ export function MeetingsExamplePage() {
 		getVideoDevices();
 	}, []);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: no problem
 	useEffect(() => {
 		const getMedia = async () => {
 			const stream = await navigator.mediaDevices.getUserMedia({
@@ -28,12 +35,23 @@ export function MeetingsExamplePage() {
 				audio: true,
 			});
 			setStream(stream);
-			if (videoRef.current) {
-				videoRef.current.srcObject = stream;
+			videoRef.current.srcObject = stream;
+
+			const videoTrack = stream.getVideoTracks()[0];
+			if (enableBackgroundBlur) {
+				const options = {
+					blurRadius: 15,
+				};
+				const processedTrack = await virtualBackgroundProcessor.startProcessing(
+					videoTrack,
+					options,
+				);
+				videoRef.current.srcObject = new MediaStream([processedTrack]);
 			}
 		};
+
 		getMedia();
-	}, [currentVideoDeviceId]);
+	}, [videoRef.current, currentVideoDeviceId, enableBackgroundBlur]);
 
 	useEffect(() => {
 		return () => {
@@ -66,6 +84,14 @@ export function MeetingsExamplePage() {
 					))}
 				</Flex>
 			</RadioGroup>
+			<Flex width="500px">
+				<Text>背景ぼかし</Text>
+				<Switch
+					id="enableBackgroundBlur"
+					isChecked={enableBackgroundBlur}
+					onChange={(e) => setEnableBackgroundBlur(e.target.checked)}
+				/>
+			</Flex>
 		</Flex>
 	);
 }
