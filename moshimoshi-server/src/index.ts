@@ -28,11 +28,11 @@ app.use(
 );
 app.use(logger());
 
-app.get("/", (c) => {
+app.get("/api/", (c) => {
 	return c.text("Hello Hono!");
 });
 
-app.post("/sign-up", async (c) => {
+app.post("/api/sign-up", async (c) => {
 	const body = await c.req.json();
 
 	const result = await usersModel.signUp({
@@ -48,7 +48,7 @@ app.post("/sign-up", async (c) => {
 	return c.json({ message: "success" });
 });
 
-app.post("/sign-in", async (c) => {
+app.post("/api/sign-in", async (c) => {
 	const body = await c.req.json();
 
 	const result = await usersModel.signIn({
@@ -63,7 +63,7 @@ app.post("/sign-in", async (c) => {
 	return c.json(result.value);
 });
 
-app.use("/auth/*", (c, next) => {
+app.use("/api/auth/*", (c, next) => {
 	const jwtMiddleware = jwt({
 		secret:
 			process.env.JWT_SECRET ??
@@ -73,9 +73,9 @@ app.use("/auth/*", (c, next) => {
 	return jwtMiddleware(c, next);
 });
 
-app.use("/auth/*", currentUserMiddleware);
+app.use("/api/auth/*", currentUserMiddleware);
 
-app.get("/auth/current-user", async (c) => {
+app.get("/api/auth/current-user", async (c) => {
 	const user = c.get("currentUser");
 
 	const userSetting = await userSettingsModel.find(user.id);
@@ -86,7 +86,7 @@ app.get("/auth/current-user", async (c) => {
 	});
 });
 
-app.patch("/auth/settings", async (c) => {
+app.patch("/api/auth/settings", async (c) => {
 	const user = c.get("currentUser");
 	const body = await c.req.json();
 
@@ -103,7 +103,7 @@ app.patch("/auth/settings", async (c) => {
 	return c.json(result.value);
 });
 
-app.patch("/auth/settings/values", async (c) => {
+app.patch("/api/auth/settings/values", async (c) => {
 	const user = c.get("currentUser");
 	const body = await c.req.json();
 
@@ -124,13 +124,13 @@ app.patch("/auth/settings/values", async (c) => {
 	return c.json(result.value);
 });
 
-app.get("/auth/meetings", async (c) => {
+app.get("/api/auth/meetings", async (c) => {
 	const meetings = await meetingsModel.findAllActive();
 
 	return c.json(meetings);
 });
 
-app.post("/auth/meetings", async (c) => {
+app.post("/api/auth/meetings", async (c) => {
 	const body = await c.req.json();
 
 	const result = await meetingsModel.create({
@@ -145,7 +145,7 @@ app.post("/auth/meetings", async (c) => {
 	return c.json(result.value);
 });
 
-app.get("/auth/meetings/:uuid", async (c) => {
+app.get("/api/auth/meetings/:uuid", async (c) => {
 	const meetingUuid = c.req.param("uuid");
 
 	const meeting = await meetingsModel.find(meetingUuid);
@@ -153,7 +153,7 @@ app.get("/auth/meetings/:uuid", async (c) => {
 	return c.json(meeting);
 });
 
-app.post("/auth/meetings/:uuid/attend", async (c) => {
+app.post("/api/auth/meetings/:uuid/attend", async (c) => {
 	const meetingUuid = c.req.param("uuid");
 
 	const result = await meetingsModel.attend({
@@ -168,7 +168,7 @@ app.post("/auth/meetings/:uuid/attend", async (c) => {
 	return c.json(result.value);
 });
 
-app.post("/auth/meetings/:uuid/leave", async (c) => {
+app.post("/api/auth/meetings/:uuid/leave", async (c) => {
 	const meetingUuid = c.req.param("uuid");
 
 	const result = await meetingsModel.leave({
