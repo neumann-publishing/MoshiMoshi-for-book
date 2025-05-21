@@ -32,7 +32,11 @@ export function MeetingsExamplePage() {
 						? { exact: currentVideoDeviceId }
 						: undefined,
 				},
-				audio: true,
+				audio: {
+					noiseSuppression: true,
+					echoCancellation: true,
+					autoGainControl: true,
+				},
 			});
 			setStream(stream);
 			videoRef.current.srcObject = stream;
