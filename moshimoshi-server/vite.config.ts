@@ -9,6 +9,8 @@ export default defineConfig({
 		devServer({
 			adapter: nodeAdapter,
 			entry: "src/index.ts",
+			exclude: [/^\/node_modules\/.*/, /^\/\.pnpm-store\/.*/],
+			ignoreWatching: [/\/node_modules\/.*/, /\/\.pnpm-store\/.*/],
 		}),
 		build({
 			entry: "src/index.ts",
@@ -22,5 +24,8 @@ export default defineConfig({
 		port: 3000,
 		host: "0.0.0.0",
 		allowedHosts: ["moshimoshi.example.com"],
+		watch: {
+			ignored: ["node_modules/**", ".pnpm-store/**"],
+		},
 	},
 });

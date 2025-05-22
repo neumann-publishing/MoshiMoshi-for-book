@@ -22,7 +22,7 @@ import { jwtTokenAtom } from "../atoms/current-user";
 import { CreateMeetingForm } from "../components/create-meeting-form";
 import { SignOutButton } from "../components/sign-out-button";
 import { httpClient } from "../libs/http-client";
-import { MeetingWithPariticipants } from "../types";
+import type { MeetingWithPariticipants } from "../types";
 
 export function Home() {
 	const [showAddMeeting, setShowAddMeeting] = useState(false);
@@ -41,13 +41,18 @@ export function Home() {
 			alignItems="center"
 			flexDirection="column"
 		>
-			<Flex width="500px" justifyContent="space-between" alignItems="center">
+			<Flex
+				width="100%"
+				maxWidth="500px"
+				justifyContent="space-between"
+				alignItems="center"
+			>
 				<Heading as="h1" size="2xl">
 					MoshiMoshi
 				</Heading>
 				<SignOutButton />
 			</Flex>
-			<Flex width="500px" flexDirection="column">
+			<Flex width="100%" maxWidth="500px" flexDirection="column">
 				<Heading as="h2" size="lg">
 					ミーティング一覧
 				</Heading>
@@ -76,7 +81,7 @@ export function Home() {
 											{meeting.participants.map((participant) => (
 												<Avatar
 													key={participant.userId}
-													name={participant.userName || participant.userEmail}
+													name={participant.userName}
 													size="sm"
 												/>
 											))}

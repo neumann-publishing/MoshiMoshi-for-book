@@ -10,8 +10,7 @@ import {
 	Tag,
 	Text,
 } from "@chakra-ui/react";
-import { VirtualBackgroundProcessor } from "@shiguredo/virtual-background";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import { MdArrowBackIos } from "react-icons/md";
@@ -31,7 +30,8 @@ import { MicrophoneButton } from "../../components/microphone-button";
 import { MyVideoPanel } from "../../components/my-video-panel";
 import { VideoButton } from "../../components/video-button";
 import { httpClient } from "../../libs/http-client";
-import { MeetingWithPariticipants } from "../../types";
+import { mediaDecorator, stopMedia } from "../../libs/media-decorator";
+import type { MeetingWithPariticipants } from "../../types";
 
 export function MeetingsUuidPage() {
 	const jwtToken = useAtomValue(jwtTokenAtom);
@@ -46,18 +46,10 @@ export function MeetingsUuidPage() {
 	const setMicrophoneVolumeSize = useSetAtom(microphoneVolumeSizeAtom);
 	const enableNoiseCancellation = useAtomValue(enableNoiseCancellationAtom);
 	const currentAudioDeviceId = useAtomValue(currentAudioDeviceIdAtom);
-	const currentVideDeviceId = useAtomValue(currentVideoDeviceIdAtom);
+	const currentVideoDeviceId = useAtomValue(currentVideoDeviceIdAtom);
 	const enableBackgroundBlur = useAtomValue(enableBackgroundBlurAtom);
 
-	const assetsPath =
-		"https://cdn.jsdelivr.net/npm/@shiguredo/virtual-background@latest/dist";
-	const virtualBackgroundProcessor = new VirtualBackgroundProcessor(assetsPath);
-
-	const {
-		data: meeting,
-		isLoading,
-		refetch,
-	} = useQuery<MeetingWithPariticipants>({
+	const { data: meeting, isLoading } = useQuery<MeetingWithPariticipants>({
 		queryKey: ["meetings", params.uuid],
 		queryFn: () => {
 			return httpClient({ jwtToken })
@@ -66,28 +58,7 @@ export function MeetingsUuidPage() {
 		},
 	});
 
-	const { mutate, isPending } = useMutation<{
-		message: string;
-		already: boolean;
-	}>({
-		mutationFn: () => {
-			return httpClient({ jwtToken })
-				.post(`auth/meetings/${params.uuid}/attend`)
-				.json();
-		},
-		onSuccess: async (body) => {
-			if (!body.already) {
-				// 会話に初参加したケース
-				await refetch();
-			} else {
-				// すでに会話に参加しているケース
-			}
-		},
-		onError: () => {},
-	});
-
 	const onAttend = async () => {
-		mutate();
 		setStartMeeting(true);
 	};
 
@@ -108,83 +79,37 @@ export function MeetingsUuidPage() {
 		}
 	}, [meeting, currentUser]);
 
-	// TODO deviceId を切り替えたときに画面がちらつく問題を解決したい
-	// biome-ignore lint/correctness/useExhaustiveDependencies: run after render video
+	// biome-ignore lint/correctness/useExhaustiveDependencies(setMicrophoneVolume): it's a just setter
+	// biome-ignore lint/correctness/useExhaustiveDependencies(setMicrophoneVolumeSize): it's a just setter
+	// biome-ignore lint/correctness/useExhaustiveDependencies(videoRef.current): <explanation>
 	useEffect(() => {
 		if (videoRef.current) {
-			navigator.mediaDevices
-				.getUserMedia({
-					video: {
-						deviceId: currentVideDeviceId
-							? { exact: currentVideDeviceId }
-							: undefined,
-					},
-					audio: {
-						deviceId: currentAudioDeviceId
-							? { exact: currentAudioDeviceId }
-							: undefined,
-						noiseSuppression: enableNoiseCancellation,
-						echoCancellation: enableNoiseCancellation,
-						autoGainControl: enableNoiseCancellation,
-					},
-				})
-				.then((stream) => {
-					videoRef.current.srcObject = stream;
-
-					const audioContext = new AudioContext();
-					const source = audioContext.createMediaStreamSource(stream);
-					const analyser = audioContext.createAnalyser();
-					analyser.fftSize = 256;
-					const dataArray = new Uint8Array(analyser.frequencyBinCount);
-					source.connect(analyser);
-
-					setMicrophoneVolumeSize(analyser.frequencyBinCount);
-
-					audioTrackRef.current = stream.getAudioTracks()[0];
-					const videoTrack = stream.getVideoTracks()[0];
-					videoTrackRef.current = videoTrack;
-
-					const checkAudioInput = () => {
-						analyser.getByteFrequencyData(dataArray);
-						const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
-						setMicrophoneVolume(volume);
-						requestAnimationFrame(checkAudioInput);
-					};
-					checkAudioInput();
-
-					if (enableBackgroundBlur) {
-						const options = {
-							blurRadius: 15,
-						};
-						virtualBackgroundProcessor
-							.startProcessing(videoTrack, options)
-							.then((processedTrack) => {
-								videoRef.current.srcObject = new MediaStream([processedTrack]);
-							});
-					}
-				})
-				.catch((error) => {
-					console.error("Error accessing media devices.", error);
-				});
+			mediaDecorator({
+				videoRef,
+				audioTrackRef,
+				videoTrackRef,
+				currentVideoDeviceId,
+				currentAudioDeviceId,
+				enableNoiseCancellation,
+				enableBackgroundBlur,
+				setMicrophoneVolume,
+				setMicrophoneVolumeSize,
+			});
 		}
 	}, [
-		videoRef.current,
 		enableNoiseCancellation,
 		currentAudioDeviceId,
-		currentVideDeviceId,
+		currentVideoDeviceId,
 		enableBackgroundBlur,
+		videoRef.current,
 	]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: distraction
 	useEffect(() => {
 		return () => {
-			virtualBackgroundProcessor.stopProcessing();
-			if (videoTrackRef.current) {
-				videoTrackRef.current.stop();
-			}
-			if (audioTrackRef.current) {
-				audioTrackRef.current.stop();
-			}
+			stopMedia({
+				videoTrackRef,
+				audioTrackRef,
+			});
 		};
 	}, []);
 
@@ -214,7 +139,12 @@ export function MeetingsUuidPage() {
 				alignItems="center"
 				flexDirection="column"
 			>
-				<Flex width="500px" justifyContent="space-between" alignItems="center">
+				<Flex
+					width="100%"
+					maxWidth="500px"
+					justifyContent="space-between"
+					alignItems="center"
+				>
 					<IconButton
 						aria-label="back"
 						onClick={onBackToHome}
@@ -226,23 +156,31 @@ export function MeetingsUuidPage() {
 					<Box />
 				</Flex>
 
-				<Flex width="500px" justifyContent="center" alignItems="center">
+				<Flex
+					width="100%"
+					maxWidth="500px"
+					justifyContent="center"
+					alignItems="center"
+				>
 					<Heading as="h2" size="lg">
 						{meeting.name}
 					</Heading>
 				</Flex>
 
-				<Flex width="400px" flexDirection="column" gap="0.5rem">
+				<Flex
+					width="100%"
+					maxWidth="500px"
+					padding="0 1rem"
+					flexDirection="column"
+					gap="0.5rem"
+				>
 					<Heading as="h3" size="md">
 						参加者
 					</Heading>
 					{meeting.participants.map((participant) => (
 						<Flex key={participant.userId} gap="0.5rem" alignItems="center">
-							<Avatar
-								name={participant.userName || participant.userEmail}
-								size="sm"
-							/>
-							<Text>{participant.userName || participant.userEmail}</Text>
+							<Avatar name={participant.userName} size="sm" />
+							<Text>{participant.userName}</Text>
 							<When condition={participant.isOwner}>
 								<Tag colorScheme="orange">オーナー</Tag>
 							</When>
@@ -252,7 +190,8 @@ export function MeetingsUuidPage() {
 
 				<Flex
 					flexDirection="column"
-					width="500px"
+					width="100%"
+					maxWidth="500px"
 					justifyContent="center"
 					alignItems="center"
 					marginTop="0.5rem"
@@ -275,12 +214,7 @@ export function MeetingsUuidPage() {
 				</Flex>
 
 				<Flex gap="0.5rem" justifyContent="center">
-					<Button
-						type="button"
-						colorScheme="blue"
-						onClick={onAttend}
-						isLoading={isPending}
-					>
+					<Button type="button" colorScheme="blue" onClick={onAttend}>
 						参加する
 					</Button>
 					<Button type="button" onClick={onBackToHome}>
@@ -291,14 +225,5 @@ export function MeetingsUuidPage() {
 		);
 	}
 
-	return (
-		<MeetingPanel
-			meeting={meeting}
-			setStartMeeting={setStartMeeting}
-			startMeeting={startMeeting}
-			videoRef={videoRef}
-			audioTrackRef={audioTrackRef}
-			videoTrackRef={videoTrackRef}
-		/>
-	);
+	return <MeetingPanel meeting={meeting} setStartMeeting={setStartMeeting} />;
 }

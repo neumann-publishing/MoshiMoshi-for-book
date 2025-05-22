@@ -4,10 +4,11 @@ import { cors } from "hono/cors";
 import { jwt } from "hono/jwt";
 import type { JwtVariables } from "hono/jwt";
 import { logger } from "hono/logger";
-import { Selectable } from "kysely";
-import { Users } from "./db/db.js";
+import type { Selectable } from "kysely";
+import type { Users } from "./db/db.js";
 import { currentUserMiddleware } from "./middlewares/current-user-middleware.js";
 import * as meetingsModel from "./models/meetings.js";
+import * as participantsModel from "./models/participants.js";
 import * as userSettingsModel from "./models/user-settings.js";
 import * as usersModel from "./models/users.js";
 
@@ -151,21 +152,6 @@ app.get("/api/auth/meetings/:uuid", async (c) => {
 	const meeting = await meetingsModel.find(meetingUuid);
 
 	return c.json(meeting);
-});
-
-app.post("/api/auth/meetings/:uuid/attend", async (c) => {
-	const meetingUuid = c.req.param("uuid");
-
-	const result = await meetingsModel.attend({
-		uuid: meetingUuid,
-		userId: c.get("currentUser").id,
-	});
-
-	if (!result.success) {
-		return c.json({ message: "Failed to attend meeting" }, 400);
-	}
-
-	return c.json(result.value);
 });
 
 app.post("/api/auth/meetings/:uuid/leave", async (c) => {

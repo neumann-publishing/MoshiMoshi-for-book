@@ -8,5 +8,8 @@ export default defineConfig({
 		port: 3001,
 		host: "0.0.0.0",
 		allowedHosts: ["moshimoshi.example.com"],
+		watch: {
+			ignored: ["node_modules/**", ".pnpm-store/**"],
+		},
 	},
 });

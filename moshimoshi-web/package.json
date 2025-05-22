@@ -6,8 +6,7 @@
 	"scripts": {
 		"dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 vite",
 		"build": "tsc -b && vite build",
-		"preview": "vite preview",
-		"check": "biome check --write ."
+		"preview": "vite preview"
 	},
 	"dependencies": {
 		"@chakra-ui/react": "2",
@@ -22,15 +21,16 @@
 		"js-cookie": "^3.0.5",
 		"jwt-decode": "^4.0.0",
 		"ky": "^1.7.5",
+		"mediasoup-client": "^3.9.5",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
 		"react-icons": "^5.5.0",
 		"react-if": "^4.1.5",
 		"react-timer-hook": "^4.0.1",
+		"socket.io-client": "^4.8.1",
 		"wouter": "^3.6.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
 		"@types/js-cookie": "^3.0.6",
 		"@types/react": "^19.0.10",
 		"@types/react-dom": "^19.0.4",

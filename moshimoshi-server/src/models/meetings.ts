@@ -1,11 +1,9 @@
-import { Insertable } from "kysely";
 import { jsonArrayFrom } from "kysely/helpers/postgres";
 import { v4 as uuidv4 } from "uuid";
 import * as v from "valibot";
-import { Meetings } from "../db/db.js";
 import { db } from "../db/index.js";
 import { failedToCreateError, notFoundError } from "../libs/validator.js";
-import { ModelResponse } from "../types.js";
+import type { ModelResponse } from "../types.js";
 
 export async function findAllActive() {
 	return await db
@@ -21,10 +19,11 @@ export async function findAllActive() {
 							.onRef("participants.userId", "=", "users.id"),
 					)
 					.select([
-						"users.id as user_id",
-						"users.email as user_email",
-						"users.name as user_name",
-						"participants.isOwner as is_owner",
+						"users.id as userId",
+						"users.name as userName",
+						"participants.isOwner as isOwner",
+						"participants.producerId as producerId",
+						"participants.updatedAt as attendedAt",
 					])
 					.orderBy("participants.isOwner", "desc"),
 			).as("participants"),
@@ -47,10 +46,11 @@ export async function find(uuid: string) {
 							.onRef("participants.userId", "=", "users.id"),
 					)
 					.select([
-						"users.id as user_id",
-						"users.email as user_email",
-						"users.name as user_name",
-						"participants.isOwner as is_owner",
+						"users.id as userId",
+						"users.name as userName",
+						"participants.producerId as producerId",
+						"participants.isOwner as isOwner",
+						"participants.updatedAt as attendedAt",
 					])
 					.orderBy("participants.isOwner", "desc"),
 			).as("participants"),
@@ -64,9 +64,7 @@ const CreateSchema = v.object({
 	userId: v.number(),
 });
 type CreateParams = v.InferOutput<typeof CreateSchema>;
-export async function create(
-	params: CreateParams,
-): Promise<ModelResponse<Insertable<Meetings>>> {
+export async function create(params: CreateParams): Promise<ModelResponse> {
 	const validationResult = v.safeParse(CreateSchema, params);
 
 	if (!validationResult.success) {
@@ -106,43 +104,63 @@ export async function create(
 	});
 }
 
-const AttendSchema = v.object({
-	uuid: v.pipe(v.string(), v.uuid()),
-	userId: v.number(),
-});
-type AttendParams = v.InferOutput<typeof AttendSchema>;
-export async function attend(params: AttendParams) {
-	const validationResult = v.safeParse(AttendSchema, params);
-
-	if (!validationResult.success) {
-		return { success: false, value: validationResult.issues };
-	}
-
+export async function attend(params: {
+	uuid: string;
+	userId: number;
+	producerId: string;
+}) {
 	return await db.transaction().execute(async (trx) => {
 		const existedParticipant = await trx
 			.selectFrom("participants")
-			.selectAll()
+			.select("userId")
 			.where("meetingUuid", "=", params.uuid)
 			.where("userId", "=", params.userId)
 			.executeTakeFirst();
 
 		if (existedParticipant) {
-			return {
-				success: true,
-				value: { message: "Already attended", already: true },
-			};
+			await trx
+				.updateTable("participants")
+				.set({
+					producerId: params.producerId,
+					updatedAt: new Date(),
+				})
+				.where("meetingUuid", "=", params.uuid)
+				.where("userId", "=", params.userId)
+				.execute();
+		} else {
+			await trx
+				.insertInto("participants")
+				.values({
+					meetingUuid: params.uuid,
+					userId: params.userId,
+					producerId: params.producerId,
+					isOwner: false,
+				})
+				.execute();
 		}
 
-		await trx
-			.insertInto("participants")
-			.values({
-				meetingUuid: params.uuid,
-				userId: params.userId,
-				isOwner: false,
-			})
-			.execute();
+		const participant = await trx
+			.selectFrom("participants")
+			.innerJoin("users", (join) =>
+				join
+					.onRef("participants.userId", "=", "users.id")
+					.on("participants.meetingUuid", "=", params.uuid),
+			)
+			.select([
+				"participants.userId as userId",
+				"participants.meetingUuid as meetingUuid",
+				"participants.producerId as producerId",
+				"participants.isOwner as isOwner",
+				"users.name as userName",
+				"participants.updatedAt as attendedAt",
+			])
+			.where("participants.userId", "=", params.userId)
+			.executeTakeFirst();
 
-		return { success: true, value: { message: "attended", already: false } };
+		return {
+			success: true,
+			value: { participant, already: existedParticipant != null },
+		};
 	});
 }
 

@@ -1,3 +1,5 @@
+import type { types as mediasoupTypes } from "mediasoup-client";
+
 export type User = {
 	id: number;
 	email: string;
@@ -35,10 +37,17 @@ export type MeetingWithPariticipants = {
 	finishedAt?: Date;
 	createdAt: Date;
 	updatedAt: Date;
+	rtpCapabilities: mediasoupTypes.RtpCapabilities;
 	participants: {
 		userId: number;
-		userEmail: string;
-		userName?: string;
+		userName: string;
 		isOwner: boolean;
+		producerId?: string;
+		attendedAt?: Date;
 	}[];
 };
+
+export enum TransportDirection {
+	SEND = "send",
+	RECV = "recv",
+}

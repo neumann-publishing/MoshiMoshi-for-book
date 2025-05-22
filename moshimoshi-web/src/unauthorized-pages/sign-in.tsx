@@ -24,7 +24,7 @@ import {
 	microphoneUnderGainAtom,
 } from "../atoms/media";
 import { httpClient } from "../libs/http-client";
-import { User, UserSetting } from "../types";
+import type { User, UserSetting } from "../types";
 
 export function SignInPage() {
 	const setJwtToken = useSetAtom(jwtTokenAtom);
@@ -87,7 +87,7 @@ export function SignInPage() {
 			alignItems="center"
 			flexDirection="column"
 		>
-			<Flex flex="1" flexDirection="column" width="500px">
+			<Flex flex="1" flexDirection="column" width="100%" maxWidth="500px">
 				<Heading as="h1" size="2xl">
 					MoshiMoshi
 				</Heading>

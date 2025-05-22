@@ -34,7 +34,21 @@ services:
       - db
     volumes:
       - ./moshimoshi-server:/moshimoshi-server
-
+  socket:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /moshimoshi-server
+    command: bash -c "pnpm run websocket"
+    ports:
+      - "3002:3002"
+      - "10000-10040:10000-10040"
+    env_file:
+      - moshimoshi-server/.env
+    links:
+      - db
+    volumes:
+      - ./moshimoshi-server:/moshimoshi-server
   web:
     build:
       context: .

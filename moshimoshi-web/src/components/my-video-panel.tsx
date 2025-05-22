@@ -1,9 +1,8 @@
-import { Avatar, Flex, Progress } from "@chakra-ui/react";
 import { useAtomValue } from "jotai";
-import { RefObject } from "react";
-import { When } from "react-if";
+import type { RefObject } from "react";
 import { currentUserAtom } from "../atoms/current-user";
 import { enableVideoAtom, microphoneVolumeFilteredAtom } from "../atoms/media";
+import { VideoPanel } from "./video-panel";
 
 export function MyVideoPanel({
 	videoRef,
@@ -15,33 +14,11 @@ export function MyVideoPanel({
 	const currentUser = useAtomValue(currentUserAtom);
 
 	return (
-		<Flex width="100%" height="100%" flexDirection="column">
-			<video
-				ref={videoRef}
-				width="460px"
-				height="345px"
-				autoPlay
-				muted
-				style={{ display: enableVideo ? "block" : "none" }}
-			/>
-
-			<When condition={!enableVideo}>
-				<Flex
-					width="460px"
-					height="345px"
-					bgColor="lightgray"
-					justifyContent="center"
-					alignItems="center"
-				>
-					<Avatar name={currentUser.name || currentUser.email} size="lg" />
-				</Flex>
-			</When>
-			<Progress
-				colorScheme="teal"
-				size="xs"
-				value={microphoneVolumeFiltered}
-				width="100%"
-			/>
-		</Flex>
+		<VideoPanel
+			videoRef={videoRef}
+			enableVideo={enableVideo}
+			userName={currentUser.name}
+			soundVolume={microphoneVolumeFiltered}
+		/>
 	);
 }

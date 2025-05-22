@@ -21,7 +21,7 @@ import {
 } from "./atoms/media";
 import { httpClient } from "./libs/http-client";
 import { Routes } from "./routes";
-import { User, UserSetting } from "./types";
+import type { User, UserSetting } from "./types";
 import { UnauthorizedRoutes } from "./unauthorized-routes";
 
 export function App() {
