@@ -96,6 +96,7 @@ export function stopMedia({
 	videoTrackRef: React.RefObject<MediaStreamTrack | null>;
 }) {
 	virtualBackgroundProcessor.stopProcessing();
+
 	if (videoTrackRef.current) {
 		videoTrackRef.current.stop();
 	}
