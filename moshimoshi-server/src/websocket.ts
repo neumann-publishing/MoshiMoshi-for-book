@@ -1,9 +1,9 @@
 import http from "node:http";
+import "dotenv/config";
 import { verify } from "hono/jwt";
 import * as mediasoup from "mediasoup";
 import type { MediaKind } from "mediasoup/node/lib/rtpParametersTypes.js";
 import { Server } from "socket.io";
-import "dotenv/config";
 import * as meetingsModel from "./models/meetings.js";
 import * as participantsModel from "./models/participants.js";
 
@@ -117,7 +117,6 @@ interface ConsumeResponse {
 interface ParticipantInfo {
 	userId: number;
 	meetingUuid: string;
-	producerId: string | null;
 	isOwner: boolean;
 	userName: string;
 	attendedAt: Date | null;
@@ -170,13 +169,13 @@ const transportOptions: mediasoup.types.WebRtcTransportOptions = {
 			protocol: "udp",
 			ip: "0.0.0.0",
 			announcedAddress: process.env.ANNOUNCED_IP || undefined,
-			portRange: { min: 10000, max: 10020 }
+			portRange: { min: 10000, max: 10020 },
 		},
 		{
 			protocol: "tcp",
 			ip: "0.0.0.0",
 			announcedAddress: process.env.ANNOUNCED_IP || undefined,
-			portRange: { min: 10021, max: 10040 }
+			portRange: { min: 10021, max: 10040 },
 		},
 	],
 	enableUdp: true,
@@ -264,7 +263,6 @@ io.on("connection", (socket) => {
 				const result = await meetingsModel.attend({
 					uuid: meetingUuid,
 					userId: socket.data.userId,
-					producerId: producer.id,
 				});
 
 				callback({ producerId: producer.id });
@@ -378,40 +376,49 @@ io.on("connection", (socket) => {
 	socket.on("getParticipants", async ({ meetingUuid }, callback) => {
 		try {
 			// ミーティングの参加者情報をDBから取得
-			const participants = await participantsModel.getParticipantsByMeetingUuid(meetingUuid);
-			
+			const participants =
+				await participantsModel.getParticipantsByMeetingUuid(meetingUuid);
+
 			// プロデューサー情報を含む参加者リストを作成
 			const participantsWithProducers: ParticipantInfo[] = [];
-			
+
 			for (const participant of participants) {
 				// 対応するピアを探す
 				let producerId: string | null = participant.producerId;
-				
+
 				// プロデューサーIDがなく、オンラインユーザーの場合は現在接続中のピアから探す
 				if (!producerId) {
 					for (const [_, peer] of peers.entries()) {
-						if (peer.userId === participant.userId && peer.producers.length > 0) {
+						if (
+							peer.userId === participant.userId &&
+							peer.producers.length > 0
+						) {
 							// ピアに関連付けられたプロデューサーがあれば、最初のものを使用
 							producerId = peer.producers[0].id;
 							break;
 						}
 					}
 				}
-				
+
 				participantsWithProducers.push({
 					userId: participant.userId,
 					meetingUuid,
-					producerId,
 					isOwner: participant.isOwner,
 					userName: participant.userName,
 					attendedAt: participant.attendedAt,
 				});
 			}
-			
-			console.log(`Sending participants info for meeting ${meetingUuid}:`, participantsWithProducers);
+
+			console.log(
+				`Sending participants info for meeting ${meetingUuid}:`,
+				participantsWithProducers,
+			);
 			callback(participantsWithProducers);
 		} catch (error) {
-			console.error(`Error getting participants for meeting ${meetingUuid}:`, error);
+			console.error(
+				`Error getting participants for meeting ${meetingUuid}:`,
+				error,
+			);
 			callback([]);
 		}
 	});
@@ -423,15 +430,17 @@ io.on("connection", (socket) => {
 				uuid: meetingUuid,
 				userId: socket.data.userId,
 			});
-			
+
 			if (!result.success) {
-				console.error(`Failed to leave meeting ${meetingUuid} for user ${socket.data.userId}`);
+				console.error(
+					`Failed to leave meeting ${meetingUuid} for user ${socket.data.userId}`,
+				);
 				callback({ success: false, message: "Failed to leave meeting" });
 				return;
 			}
-			
+
 			console.log(`User ${socket.data.userId} left meeting ${meetingUuid}`);
-			
+
 			// 他の参加者のプロデューサーが存在する場合は削除する
 			const peer = peers.get(socket.id);
 			if (peer) {
@@ -440,29 +449,38 @@ io.on("connection", (socket) => {
 					try {
 						await transport.close();
 					} catch (error) {
-						console.error(`Error closing transport for user ${socket.data.userId}:`, error);
+						console.error(
+							`Error closing transport for user ${socket.data.userId}:`,
+							error,
+						);
 					}
 				}
-				
+
 				// プロデューサーをクローズ
 				for (const producer of peer.producers) {
 					try {
 						await producer.close();
 					} catch (error) {
-						console.error(`Error closing producer for user ${socket.data.userId}:`, error);
+						console.error(
+							`Error closing producer for user ${socket.data.userId}:`,
+							error,
+						);
 					}
 				}
-				
+
 				// コンシューマーをクローズ
 				for (const consumer of peer.consumers) {
 					try {
 						await consumer.close();
 					} catch (error) {
-						console.error(`Error closing consumer for user ${socket.data.userId}:`, error);
+						console.error(
+							`Error closing consumer for user ${socket.data.userId}:`,
+							error,
+						);
 					}
 				}
 			}
-			
+
 			callback({ success: true, message: "Successfully left the meeting" });
 		} catch (error) {
 			console.error(`Error handling leaveMeeting for ${meetingUuid}:`, error);

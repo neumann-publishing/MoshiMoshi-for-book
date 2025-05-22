@@ -22,7 +22,6 @@ export async function findAllActive() {
 						"users.id as userId",
 						"users.name as userName",
 						"participants.isOwner as isOwner",
-						"participants.producerId as producerId",
 						"participants.updatedAt as attendedAt",
 					])
 					.orderBy("participants.isOwner", "desc"),
@@ -48,7 +47,6 @@ export async function find(uuid: string) {
 					.select([
 						"users.id as userId",
 						"users.name as userName",
-						"participants.producerId as producerId",
 						"participants.isOwner as isOwner",
 						"participants.updatedAt as attendedAt",
 					])
@@ -107,7 +105,6 @@ export async function create(params: CreateParams): Promise<ModelResponse> {
 export async function attend(params: {
 	uuid: string;
 	userId: number;
-	producerId: string;
 }) {
 	return await db.transaction().execute(async (trx) => {
 		const existedParticipant = await trx
@@ -121,7 +118,6 @@ export async function attend(params: {
 			await trx
 				.updateTable("participants")
 				.set({
-					producerId: params.producerId,
 					updatedAt: new Date(),
 				})
 				.where("meetingUuid", "=", params.uuid)
@@ -133,7 +129,6 @@ export async function attend(params: {
 				.values({
 					meetingUuid: params.uuid,
 					userId: params.userId,
-					producerId: params.producerId,
 					isOwner: false,
 				})
 				.execute();
@@ -149,7 +144,6 @@ export async function attend(params: {
 			.select([
 				"participants.userId as userId",
 				"participants.meetingUuid as meetingUuid",
-				"participants.producerId as producerId",
 				"participants.isOwner as isOwner",
 				"users.name as userName",
 				"participants.updatedAt as attendedAt",
