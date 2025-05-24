@@ -34,8 +34,8 @@ const io = new Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
-	socket.on("foo", (callback) => {
-		// … ここに処理を書く
+	socket.on("getRouterRtpCapabilities", (callback) => {
+		callback(router.rtpCapabilities);
 	});
 });
 
