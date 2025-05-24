@@ -1,10 +1,29 @@
 import http from "node:http";
 import "dotenv/config";
+import * as mediasoup from "mediasoup";
+import type { MediaKind } from "mediasoup/node/lib/rtpParametersTypes.js";
 import { Server } from "socket.io";
 
 const PORT = process.env.WEBSOCKET_PORT
 	? Number(process.env.WEBSOCKET_PORT)
 	: 3002;
+
+// --- mediasoup setup ---
+const mediaCodecs = [
+	{
+		kind: "audio" as MediaKind,
+		mimeType: "audio/opus",
+		clockRate: 48000,
+		channels: 2,
+	},
+	{
+		kind: "video" as MediaKind,
+		mimeType: "video/VP8",
+		clockRate: 90000,
+	},
+];
+const worker = await mediasoup.createWorker();
+const router = await worker.createRouter({ mediaCodecs });
 
 const httpServer = http.createServer();
 const io = new Server(httpServer, {

@@ -15,9 +15,6 @@ const JWT_SECRET =
 	"aU2vdTKTBGto9Yh0ElwZGC9QoYDW7Ie7pd0CwqDONgYCFHppa5c6heVgx8CnnAxW9dxkNSVCcat4DyEMGDwq1E20oOF4i9ZCCxgC";
 
 // --- mediasoup setup ---
-let worker: mediasoup.types.Worker;
-let router: mediasoup.types.Router;
-
 const mediaCodecs = [
 	{
 		kind: "audio" as MediaKind,
@@ -31,11 +28,8 @@ const mediaCodecs = [
 		clockRate: 90000,
 	},
 ];
-
-async function setupMediasoup() {
-	worker = await mediasoup.createWorker();
-	router = await worker.createRouter({ mediaCodecs });
-}
+const worker = await mediasoup.createWorker();
+const router = await worker.createRouter({ mediaCodecs });
 
 // --- room/peer management ---
 type Peer = {
@@ -494,8 +488,6 @@ io.on("connection", (socket) => {
 	});
 });
 
-setupMediasoup().then(() => {
-	httpServer.listen(PORT, () => {
-		console.log(`WebSocket+mediasoup server running on :${PORT}`);
-	});
+httpServer.listen(PORT, () => {
+	console.log(`WebSocket+mediasoup server running on :${PORT}`);
 });
